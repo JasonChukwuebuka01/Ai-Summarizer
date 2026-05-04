@@ -5,18 +5,19 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react()],
   build: {
+    outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        background: resolve(__dirname, 'src/background.ts'),
         content: resolve(__dirname, 'src/content.ts'),
+        background: resolve(__dirname, 'src/background.js'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
-          // Keep the background and content scripts as simple filenames
-          // so the manifest.json can find them easily
-          if (chunkInfo.name === 'background' || chunkInfo.name === 'content') {
-            return 'src/[name].js';
+          // Force content and background to stay at the root of /dist
+          if (chunkInfo.name === 'content' || chunkInfo.name === 'background') {
+            return '[name].js';
           }
           return 'assets/[name]-[hash].js';
         },
