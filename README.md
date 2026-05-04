@@ -7,7 +7,7 @@ This is a local extension and is not available on the Google Chrome Store. Follo
 **Clone the Repository:**
 
   ```Bash
-   git clone <your-repo-url>
+   git clone https://github.com/JasonChukwuebuka01/Ai-Summarizer
   ```
 
 2.  **Install Dependencies:**
