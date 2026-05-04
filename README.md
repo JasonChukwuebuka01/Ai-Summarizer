@@ -1,73 +1,67 @@
-# React + TypeScript + Vite
+ **AI Page Summarizer (Chrome Extension - Manifest V3)
+A high-performance Chrome extension designed to extract, analyze, and summarize web articles using AI. Built with React, TypeScript, and Tailwind CSS.**
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+** Setup Instructions
+This is a local extension and is not available on the Google Chrome Store. Follow these steps to install and use it:**
 
-Currently, two official plugins are available:
+**Clone the Repository:**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+  ```Bash
+   git clone <your-repo-url>
+  ```
 
-## React Compiler
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+3.  **Add your API Key:**
+    *   Open `src/background.ts`.
+    *   Replace the `GEMINI_API_KEY` value with your actual Gemini API key.
+4.  **Build the Project:**
+    ```bash
+    npm run build
+    ```
+5.  **Install in Chrome:**
+    *   Open Chrome and navigate to `chrome://extensions/`.
+    *   Enable **Developer mode** (toggle in the top right).
+    *   Click **Load unpacked**.
+    *   Select the `dist` folder in your project directory.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## **🏗 Architecture Explanation**
+The extension follows a decoupled tri-layer architecture to comply with **Manifest V3** security standards:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+*   **Popup UI (React/Vite):** Acts as the user interface. It manages state (loading, errors, summaries), handles word counts and copy-to-clipboard actions, and triggers the extraction process.
+*   **Content Script (Heuristic Extraction):** Injected into the webpage. It uses a density-based heuristic to identify the main article body, effectively ignoring sidebars, ads, and navigation menus.
+*   **Background Service Worker:** Acts as the secure "backend." It handles all external API communication and manages data persistence via `chrome.storage`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## **🤖 AI Integration & Security**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### **Secure API Handling**
+To meet the requirement of **never exposing API keys in the frontend**, all AI calls are routed through the **Background Service Worker**. 
+*   **Why?** The Content Script and Popup source code can be easily inspected via the browser's DevTools. Moving the logic to the Background worker adds a layer of isolation, preventing the key from being exposed via DOM inspection.
+*   **Provider:** Uses **Google Gemini 2.5 Flash** for high-speed, structured output including bullet points and key insights.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### **Data Caching (Performance)**
+The extension utilizes `chrome.storage.local` to cache summaries indexed by their URL. 
+*   If a user re-opens the extension on the same page, the summary is instantly loaded from storage, preventing redundant (and potentially costly) API calls and ensuring a snappy UX.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## **🛡 Security Decisions**
+*   **Sanitization:** React's default rendering is used for the summary output, which automatically escapes HTML entities and prevents Cross-Site Scripting (XSS). Custom regex utilities are used to strip Markdown artifacts (like `**` or `*`) before rendering.
+*   **Minimal Permissions:** The extension only requests `activeTab` (to read the current page), `storage` (for caching), and `scripting`. It does not track user history or access data across all sites unnecessarily.
+*   **Message Validation:** Messages passed between the Popup and Background script are validated via specific action strings (e.g., `CALL_AI`) to ensure only authorized internal commands are executed.
+
+---
+
+## **⚖️ Trade-offs**
+*   **Heuristic vs. Readability Library:** I chose a custom paragraph-density heuristic. While a library like Mozilla’s `Readability.js` is more robust, a custom heuristic keeps the extension lightweight with a smaller bundle size and zero external dependencies, improving load times for the user.
+*   **Client-side Background Worker:** For this project stage, the API key is stored in the background worker. In a commercial production environment, this would be moved to a proxy server (Node.js/Express) to ensure the key is never shipped to the client at all.
+
+---
+
+**Note:** This project was developed as part of the **HNG Internship Stage 4A**. It demonstrates an understanding of modern extension development, secure AI integration, and user-centric design.
